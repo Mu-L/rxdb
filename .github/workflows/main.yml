@@ -8,7 +8,6 @@ on:
   push:
     branches: [ master ]
   pull_request:
-    branches: [ master ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -26,9 +25,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Setup Node.js environment
-        uses: actions/setup-node@v2.1.5
+        uses: actions/setup-node@v2.4.0
         with:
-          node-version: 13.8.0
+          node-version: 16.5.0
 
       - name: install npm dependencies
         run: npm install
@@ -36,32 +35,35 @@ jobs:
       - name: build
         run: npm run build
       
-      - name: test:typings
-        run: npm run test:typings
-        
       - name: npm run test:node
         run: npm run test:node
   
       - name: npm run test:fast
         run: npm run test:fast
         
+      - name: test:typings
+        run: npm run test:typings
+
       - name: npm run test:performance
         run: npm run test:performance
 
       - name: node example
-        run: cd ./examples/node && npm install > "/dev/null" 2>&1 && npm run test
+        working-directory: ./examples/node
+        run: |
+          npm install
+          npm run test
 
 
   angular:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
-      - name: install dependencies
-        run: sudo apt-get update && sudo apt-get install -y chromium-browser
+      #- name: install dependencies
+      #  run: sudo apt-get update && sudo apt-get install -y chromium-browser
       - name: Setup Node.js environment
-        uses: actions/setup-node@v2.1.5
+        uses: actions/setup-node@v2.4.0
         with:
-          node-version: 13.8.0
+          node-version: 16.5.0
 
       - name: Reuse npm cache folder
         uses: actions/cache@v2
@@ -73,22 +75,26 @@ jobs:
             ./node_modules
             ./examples/angular/node_modules
           # invalidate cache when any package-lock.json changes
-          key: ${{ runner.os }}-npm-angular-${{ hashFiles('**/package.json') }}
+          key: ${{ runner.os }}-npm-angular-x3-${{ hashFiles('**/package.json') }}
           restore-keys: |
-            ${{ runner.os }}-npm-angular-
+            ${{ runner.os }}-npm-angular-x3-
 
       - name: prepare core
         run: |
-          npm install
+          npm install --legacy-peer-deps
           npm run build
           rm -r node_modules
+
       - name: angular build
         working-directory: ./examples/angular
         run: |
-          npm install > "/dev/null" 2>&1
-          npm run lint && npm run build
+          npm run preinstall
+          npm install --legacy-peer-deps
+          npm run lint
+          npm run build
 
       - name: angular test
+        # uses: DevExpress/testcafe-action@latest
         uses: GabrielBB/xvfb-action@v1
         with:
           working-directory: ./examples/angular #optional
@@ -102,6 +108,10 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v2.4.0
+        with:
+          node-version: 16.5.0
       - name: prepare core
         run: |
           npm install
@@ -118,6 +128,10 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v2.4.0
+        with:
+          node-version: 16.5.0
       - name: prepare core
         run: |
           npm install
@@ -135,59 +149,65 @@ jobs:
         run: npm run check-types
 
   electron:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v2.4.0
+        with:
+          node-version: 16.5.0
+
       - name: install dependencies
         run: sudo apt-get update && sudo apt-get install -y chromium-browser
-      - name: Setup Node.js environment
-        uses: actions/setup-node@v2.1.5
-        with:
-          node-version: 13.8.0
       - name: prepare core
         run: |
-          npm install
+          npm install --legacy-peer-deps
           npm run build
       - name: electron install
         working-directory: ./examples/electron
-        run: npm install > "/dev/null" 2>&1
+        run: |
+          npm run preinstall
+          npm install --legacy-peer-deps
 
       # TODO I had to disable that again because the tests randomly fail. We need to upgrade electron and spectron
       #- name: electron test
-      #  uses: GabrielBB/xvfb-action@v1.4
+      #  uses: GabrielBB/xvfb-action@v1.5
       #  with:
       #    working-directory: ./examples/electron
       #    run: npm run test
 
       - name: electron-remote install
         working-directory: ./examples/electron-remote
-        run: npm install > "/dev/null" 2>&1
+        run: |
+          npm install --legacy-peer-deps
 
-      - name: electron-remote test
-        uses: GabrielBB/xvfb-action@v1.5
-        with:
-          working-directory: ./examples/electron-remote
-          run: npm run test
+      # TODO commented out because of random fails. Likely fixed when upgrade the electron version
+    #  - name: electron-remote test
+    #    uses: GabrielBB/xvfb-action@v1.5
+    #    with:
+    #      working-directory: ./examples/electron-remote
+    #      run: npm run test
 
   react:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v2.4.0
+        with:
+          node-version: 16.5.0
       - name: install dependencies
         run: sudo apt-get update && sudo apt-get install -y chromium-browser
-      - name: Setup Node.js environment
-        uses: actions/setup-node@v2.1.5
-        with:
-          node-version: 13.8.0
       - name: prepare core
         run: |
-          npm install
+          npm install --legacy-peer-deps
           npm run build
           rm -r node_modules
       - name: react install
+        working-directory: ./examples/react
         run: |
-          cd ./examples/react
-          npm install > "/dev/null" 2>&1
+          npm run preinstall
+          npm install --legacy-peer-deps
           npm run build
 
       - name: react test
@@ -201,9 +221,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Setup Node.js environment
-        uses: actions/setup-node@v2.1.5
+        uses: actions/setup-node@v2.4.0
         with:
-          node-version: 13.8.0
+          node-version: 16.5.0
 
       - name: Reuse npm cache folder
         uses: actions/cache@v2
@@ -227,7 +247,7 @@ jobs:
       - name: react-native
         run: |
           cd ./examples/react-native
-          npx yarn@1.13.0 install > "/dev/null" 2>&1
+          npx yarn@1.13.0 install
           npm run test
           echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf
           sudo sysctl -p
@@ -240,23 +260,54 @@ jobs:
       - name: install dependencies
         run: sudo apt-get update && sudo apt-get install -y chromium-browser
       - name: Setup Node.js environment
-        uses: actions/setup-node@v2.1.5
+        uses: actions/setup-node@v2.4.0
         with:
-          node-version: 13.8.0
+          node-version: 16.5.0
       - name: prepare core
         run: |
-          npm install
+          npm install --legacy-peer-deps
           npm run build
           rm -r node_modules
       - name: vue build
+        working-directory: ./examples/vue
         run: |
-          cd ./examples/vue && npm install > "/dev/null" 2>&1
-          npm run lint && npm run build
+          npm run preinstall
+          npm install --legacy-peer-deps
+          npm run lint
+          npm run build
         
       - name: vue test
         uses: GabrielBB/xvfb-action@v1
         with:
           working-directory: ./examples/vue
+          run: npm run test
+
+  svelte:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: install dependencies
+        run: sudo apt-get update && sudo apt-get install -y chromium-browser
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v2.4.0
+        with:
+          node-version: 16.5.0
+      - name: prepare core
+        run: |
+          npm install --legacy-peer-deps
+          npm run build
+          rm -r node_modules
+      - name: svelte build
+        working-directory: ./examples/svelte
+        run: |
+          npm run preinstall
+          npm install --legacy-peer-deps
+          npm run build
+        
+      - name: svelte test
+        uses: GabrielBB/xvfb-action@v1
+        with:
+          working-directory: ./examples/svelte
           run: npm run test
 
   graphql:
@@ -266,17 +317,17 @@ jobs:
       - name: install dependencies
         run: sudo apt-get update && sudo apt-get install -y chromium-browser
       - name: Setup Node.js environment
-        uses: actions/setup-node@v2.1.5
+        uses: actions/setup-node@v2.4.0
         with:
-          node-version: 13.8.0
+          node-version: 16.5.0
       - name: prepare core
         run: |
-          npm install
+          npm install --legacy-peer-deps
           npm run build
 
       - name: install
         working-directory: ./examples/graphql
-        run: npm install
+        run: npm install --legacy-peer-deps
       - name: build
         working-directory: ./examples/graphql
         run: npm run build
@@ -312,9 +363,9 @@ jobs:
         run: docker run -d -p 5984:5984 --rm --name rxdb-couchdb couchdb:2.1.1
 
       - name: Setup Node.js environment
-        uses: actions/setup-node@v2.1.5
+        uses: actions/setup-node@v2.4.0
         with:
-          node-version: 13.8.0
+          node-version: 16.5.0
 
       - name: prepare core
         run: |
@@ -334,6 +385,10 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v2.4.0
+        with:
+          node-version: 16.5.0
       - name: prepare core
         run: |
           npm install
@@ -348,6 +403,10 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v2.4.0
+        with:
+          node-version: 16.5.0
       - name: prepare core
         run: |
           npm install

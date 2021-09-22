@@ -1,13 +1,12 @@
+| Announcement                                                        |
+| :--: |
+| &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; Version **10.0.0** is now released, read the [ANNOUNCEMENT](./orga/releases/10.0.0.md) &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; |
+
 <!--
 | Announcement                                                        |
 | :--: |
-| &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; Version **9.0.0** is now released, read the [ANNOUNCEMENT](./orga/releases/9.0.0.md) &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; |
--->
-
-| Announcement                                                        |
-| :--: |
 | Please take part in the [RxDB user survey 2021](https://forms.gle/aGPWdo2iELj4Ykkm9). This will help me to better plan the steps for the next major release. (takes about 2 minutes)
-
+-->
 
 
 <p align="center">
@@ -84,7 +83,8 @@ RxDB is made so that you can use **exactly the same code** at
 -   ![NodeJS](docs-src/files/icons/nodejs.png) [NodeJS](https://github.com/pubkey/rxdb/tree/master/examples/node)
 -   ![electron](docs-src/files/icons/electron.png) [Electron](https://github.com/pubkey/rxdb/tree/master/examples/electron)
 -   ![react-native](docs-src/files/icons/react-native.png) [React-Native](https://github.com/pubkey/rxdb/tree/master/examples/react-native)
--   ![cordova](docs-src/files/icons/cordova.png) [Cordova/Phonegap](https://cordova.apache.org/)
+-   ![cordova](docs-src/files/icons/cordova.png) [Cordova / Phonegap](https://cordova.apache.org/)
+-   [Capacitor](https://capacitorjs.com/)
 
 We optimized, double-checked and made boilerplates so you can directly start to use RxDB with frameworks like
 
@@ -107,46 +107,41 @@ npm install rxjs --save
 ### Import:
 
 ```javascript
-import { createRxDatabase } from 'rxdb';
-const db = await createRxDatabase({
-    name: 'heroesdb',
-    adapter: 'indexeddb',
-    password: 'myLongAndStupidPassword' // optional
-  });                                                       // create database
+import { 
+  addPouchPlugin,
+  createRxDatabase,
+  getRxStoragePouch
+} from 'rxdb';
 
-await db.collection({name: 'heroes', schema: mySchema});    // create collection
-db.heroes.insert({ name: 'Bob' });                          // insert document
+// add the pouchdb indexeddb adapter
+addPouchPlugin(require('pouchdb-adapter-idb'));
+
+// create a database
+const db = await createRxDatabase({
+    // the name of the database
+    name: 'heroesdb',
+    // use pouchdb with the indexeddb-adapter as storage engine.
+    storage: getRxStoragePouch('idb'),
+    // optional password, used to encrypt fields when defined in the schema
+    password: 'myLongAndStupidPassword'
+});
+
+// create collections
+await db.addCollections({
+  heroes: {
+    schema: mySchema
+  }
+});
+
+// insert a document
+db.heroes.insert({ name: 'Bob' });                          
 ```
 
 ## Feature-Showroom (click to toggle)
 
 <details>
 <summary>
-  <b>Mango-Query</b>
-  <p>
-
-To find data in your collection, use the [mquery](https://github.com/aheckmann/mquery) api to create chained mango-queries, which you maybe know from **mongoDB** or **mongoose**.
-
-  </p>
-</summary>
-
-```javascript
-myCollection
-  .find()
-  .where('name').ne('Alice')
-  .where('age').gt(18).lt(67)
-  .limit(10)
-  .sort('-age')
-  .exec().then( docs => {
-    console.dir(docs);
-  });
-```
-
-</details>
-
-<details>
-<summary>
-  <b>Reactive</b>
+  <b>Subscribe to query results</b>
   <p>
 
 RxDB implements [rxjs](https://github.com/ReactiveX/rxjs) to make your data reactive.
@@ -201,6 +196,42 @@ the data between devices and servers. And yes, the changeEvents are also synced.
 
 <details>
 <summary>
+  <b>EventReduce</b>
+  <p>
+    One big benefit of having a realtime database is that big performance optimizations can be done when the database knows a query is observed and the updated results are needed continuously. RxDB internally uses the <a href="https://github.com/pubkey/event-reduce">Event-Reduce algorithm</a>. This makes sure that when you update/insert/remove documents,
+    the query does not have to re-run over the whole database but the new results will be calculated from the events. This creates a huge performance-gain
+    with zero cost.
+  </p>
+</summary>
+
+### Use-Case-Example
+
+Imagine you have a very big collection with many user-documents. At your page you want to display a toplist with users which have the most `points` and are currently logged in.
+You create a query and subscribe to it.
+
+```js
+const query = usersCollection.find().where('loggedIn').eq(true).sort('points');
+query.$.subscribe(users => {
+    document.querySelector('body').innerHTML = users
+        .reduce((prev, cur) => prev + cur.username+ '<br/>', '');
+});
+```
+
+As you may detect, the query can take very long time to run, because you have thousands of users in the collection.
+When a user now logs off, the whole query will re-run over the database which takes again very long.
+
+```js
+anyUser.loggedIn = false;
+await anyUser.save();
+```
+
+But not with the EventReduce.
+Now, when one user logs off, it will calculate the new results from the current results plus the RxChangeEvent. This often can be done in-memory without making IO-requests to the storage-engine. EventReduce not only works on subscribed queries, but also when you do multiple `.exec()`'s on the same query.
+
+</details>
+
+<details>
+<summary>
   <b>Schema</b>
   <p>
 
@@ -213,11 +244,11 @@ const mySchema = {
     title: "hero schema",
     version: 0,                 // <- incremental version-number
     description: "describes a simple hero",
+    primaryKey: 'name',         // <- 'name' is the primary key for the coollection, it must be unique, required and of the type string 
     type: "object",
     properties: {
         name: {
-            type: "string",
-            primary: true       // <- this means: unique, required, string and will be used as '_id'
+            type: "string"
         },
         secret: {
             type: "string",
@@ -242,6 +273,46 @@ const mySchema = {
     required: ["color"],
     encrypted: ["secret"] // <- this means that the value of this field is stored encrypted
 };
+```
+
+</details>
+
+<details>
+<summary>
+  <b>Mango / Chained queries</b>
+  <p>
+RxDB can be queried by standard NoSQL mango queries, like you maybe know from other NoSQL Databases like <b>mongoDB</b>.
+
+Also you can use the [mquery](https://github.com/aheckmann/mquery) api to create chained mango-queries.
+  </p>
+</summary>
+
+```javascript
+
+// normal query
+myCollection.find({
+  selector: {
+    name: {
+      $ne: 'Alice'
+    },
+    age: {
+      $gt: 67
+    }
+  },
+  sort: [{ age: 'desc' }],
+  limit: 10
+})
+
+// chained query
+myCollection
+  .find()
+  .where('name').ne('Alice')
+  .where('age').gt(18).lt(67)
+  .limit(10)
+  .sort('-age')
+  .exec().then( docs => {
+    console.dir(docs);
+  });
 ```
 
 </details>
@@ -377,42 +448,6 @@ await myCollection.insert({
 console.log(myDoc.firstName);
 // 'foo'
 ```
-
-</details>
-
-<details>
-<summary>
-  <b>EventReduce</b>
-  <p>
-    One big benefit of having a realtime database is that big performance optimizations can be done when the database knows a query is observed and the updated results are needed continuously. RxDB internally uses the <a href="https://github.com/pubkey/event-reduce">Event-Reduce algorithm</a>. This makes sure that when you update/insert/remove documents,
-    the query does not have to re-run over the whole database but the new results will be calculated from the events. This creates a huge performance-gain
-    with zero cost.
-  </p>
-</summary>
-
-### Use-Case-Example
-
-Imagine you have a very big collection with many user-documents. At your page you want to display a toplist with users which have the most `points` and are currently logged in.
-You create a query and subscribe to it.
-
-```js
-const query = usersCollection.find().where('loggedIn').eq(true).sort('points');
-query.$.subscribe(users => {
-    document.querySelector('body').innerHTML = users
-        .reduce((prev, cur) => prev + cur.username+ '<br/>', '');
-});
-```
-
-As you may detect, the query can take very long time to run, because you have thousands of users in the collection.
-When a user now logs off, the whole query will re-run over the database which takes again very long.
-
-```js
-anyUser.loggedIn = false;
-await anyUser.save();
-```
-
-But not with the EventReduce.
-Now, when one user logs off, it will calculate the new results from the current results plus the RxChangeEvent. This often can be done in-memory without making IO-requests to the storage-engine. EventReduce not only works on subscribed queries, but also when you do multiple `.exec()`'s on the same query.
 
 </details>
 

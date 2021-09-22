@@ -2,18 +2,101 @@
 
 ### X.X.X (coming soon)
 
+Other:
+  - Added svelte example [#3287](https://github.com/pubkey/rxdb/pull/3287) Thanks [@bkeating](https://github.com/bkeating)
+  - Improved error messages
+
+Bugfixes:
+  - [#3319](https://github.com/pubkey/rxdb/issues/3319) Graphql replication checkpoint was not deleted after running `RxDatabase.remove()`
+  - Fixed spelling of `recieved -> received` everywhere. The old getters are still useable but `deprecated` [#3392](https://github.com/pubkey/rxdb/pull/3392). Thanks [chrisdrackett](https://github.com/chrisdrackett)
+
+### 10.0.3 (9 August 2021)
+
+Bugfixes:
+  - Calling bulk-methods with an empty array must not throw an error.
+  - `RxCollection.remove()` does not delete local documents [#3319](https://github.com/pubkey/rxdb/issues/3319)
+
+### 10.0.0 (20 July 2021) BREAKING [read the announcement](./orga/releases/10.0.0.md)
+
+Breaking:
+  - Setting a `primaryKey` for a schema is now required.
+  - When using the type `RxJsonSchema<DocType>` the `DocType` is now required.
+  - A JsonSchema must have the `required` array at the top level and it must contain the primary key.
+
+  - Outgoing data is now `Readonly` typed and [deep-frozen](https://developer.mozilla.org/de/docs/Web/JavaScript/Reference/Global_Objects/Object/freeze) in dev mode
+
+  - `RxDocument.putAttachment()` no longer supports string as data, only `Blob` or `Buffer`.
+  - Changed the default of `putAttachment` to `skipIfSame=true`.
+
+  - Removed the deprecated `atomicSet()`, use `atomicPatch()` instead.
+  - Removed the deprecated `RxDatabase.collection()` use `RxDatabase().addCollections()` instead.
+
+
+  - Moved everything pouchdb related to the `pouchdb` plugin.
+  - Pouchdb plugins are not longer added via `addRxPlugin()` but `addPouchPlugin()`. (RxDB plugins are still added via `addRxPlugin`).
+  - Removed plugin hook `preCreatePouchDb`.
+  - Removed the `watch-for-changes` plugin, this is now directly integrated into the pouchdb `RxStorage`.
+  - Removed the `adapter-check` plugin. (The function `adapterCheck` is move to the pouchdb plugin).
+
+
+  - Calling `RxDatabase.server()` now returns a promise that resolves when the server is started up.
+  - Changed the defaults of `PouchDBExpressServerOptions` from the `server()` method, by default we now store logs in the tmp folder and the config is in memory.
+  - Renamed `replication`-plugin to `replication-couchdb` to be more consistend in naming like with `replication-graphql`
+    - Renamed `RxCollection().sync()` to `RxCollection().syncCouchDB()`
+
+
+  - Renamed the functions of the json import/export plugin to be less confusing
+    - `dump()` is now `exportJSON()`
+    - `importDump()` is now `importJSON()`
+  - `RxCollection` uses a separate pouchdb instance for local documents, so that they can persist during migrations.
+
+Features:
+  - Added support for composite primary keys.
+
+Other:
+  - Moved all `should never happen` errors into own error code.
+
+Typings:
+  - Improved typings of error codes.
+
+### 9.21.0 (30 June 2021)
+
+Features:
+  - Added `dataPath` property to GraphQL replication pull options to allow the document JSON lookup path to configured instead of assuming the document data is always the first child of the response [#2606](https://github.com/pubkey/rxdb/issues/2606) Thanks [@joshmcarthur](https://github.com/joshmcarthur)
+
+Types:
+  - `getLocal()` can return `undefined`. Thanks [@chrisdrackett](https://github.com/chrisdrackett)
+  - Fixed typings in the dependencies so you can use `noUncheckedIndexedAccess`. Thanks [@seanwu1105](https://github.com/seanwu1105)
+
+
+### 9.20.0 (15 May 2021)
+
+Bugfixes:
+  - Auto-cancel one time couchdb replications to not cause a memory leak
+  - Fixed another memory leak when calling the couchdb replication many times.
+
+### 9.19.0 (12 May 2021)
+
+Features:
+  - Added the [backup-plugin](https://rxdb.info/backup.html)
+
+Other:
+  - Updated `rxjs` to version `7.0.1`
+
+### 9.18.0 (26 April 2021)
+
 Bugfixes:
   - Fixed memory leak in `RxCollection().findByIds$()`
 
 Other:
   - Added collection name when throwing errors in `RxQuery`
 
-### 9.17.1 (21 April 2020)
+### 9.17.1 (21 April 2021)
 
 Other:
   - Added hints abount 2021 user survey.
 
-### 9.17.0 (14 April 2020)
+### 9.17.0 (14 April 2021)
 
 Features:
   - Added possibility to change, update, remove and add `RxAttachment`s inside of a migration strategy.
@@ -53,7 +136,7 @@ Other:
 
 ### 9.13.0 (10 February 2021)
 
-Features: 
+Features:
 
   - Added `RxCollection().bulkRemove()` [#2845](https://github.com/pubkey/rxdb/pull/2845) Thanks [@qinyang912](https://github.com/qinyang912)
 
@@ -124,7 +207,7 @@ Features:
   - Added [RxDocument.atomicPatch()](https://rxdb.info/rx-document.html#atomicpatch)
 
 Bugfixes:
-  - (types) Returned values of `syncGraphQL()` did not type-match with `RxGraphQLReplicationState` 
+  - (types) Returned values of `syncGraphQL()` did not type-match with `RxGraphQLReplicationState`
   - `RxDocument.atomicUpdate()` now does a retry on 409 write conflicts
 
 Other:
@@ -151,7 +234,7 @@ Features:
 Other:
   - Refactored GraphQL replication to run faster [#2524](https://github.com/pubkey/rxdb/pull/2524/) Thanks [@corinv](https://github.com/corinv)
 
-### 9.6.0 (7 September 2020) 
+### 9.6.0 (7 September 2020)
 
 Features:
   - Add `RxReplicationState.setHeaders()` [#2399](https://github.com/pubkey/rxdb/pull/2399/) Thanks [@DDoerner](https://github.com/DDoerner)
@@ -677,7 +760,7 @@ Other:
 
 ## 6.0.0 (September 19, 2017) BREAKING
 
-Breaking:    
+Breaking:
   - Filenames are now kebab-case
   - `pouchdb-replication`-plugin is now imported by default, do not import it by your own.
   - `RxDB.create()` throws if you create the same database twice. (You can use [ignoreDuplicate](https://pubkey.github.io/rxdb/rx-database.html#ignoreduplicate))

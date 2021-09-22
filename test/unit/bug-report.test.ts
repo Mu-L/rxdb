@@ -10,21 +10,40 @@
  */
 import assert from 'assert';
 import AsyncTestUtil from 'async-test-util';
+import config from './config';
 
 import {
-    createRxDatabase, randomCouchString
+    createRxDatabase,
+    randomCouchString
 } from '../../plugins/core';
+
+import {
+    getRxStoragePouch,
+} from '../../plugins/pouchdb';
+
 
 describe('bug-report.test.js', () => {
     it('should fail because it reproduces the bug', async () => {
+
+        /**
+         * If your test should only run in nodejs or only run in the browser,
+         * you should comment in the return operator and addapt the if statement.
+         */
+        if (
+            !config.platform.isNode() // runs only in node
+            // config.platform.isNode() // runs only in the browser
+        ) {
+            // return;
+        }
+
         // create a schema
         const mySchema = {
             version: 0,
+            primaryKey: 'passportId',
             type: 'object',
             properties: {
                 passportId: {
-                    type: 'string',
-                    primary: true
+                    type: 'string'
                 },
                 firstName: {
                     type: 'string'
@@ -46,18 +65,19 @@ describe('bug-report.test.js', () => {
         // create a database
         const db = await createRxDatabase({
             name,
-            adapter: 'memory',
+            storage: getRxStoragePouch('memory'),
             eventReduce: true,
             ignoreDuplicate: true
         });
         // create a collection
-        const collection = await db.collection({
-            name: 'mycollection',
-            schema: mySchema
+        const collections = await db.addCollections({
+            mycollection: {
+                schema: mySchema
+            }
         });
 
         // insert a document
-        await collection.insert({
+        await collections.mycollection.insert({
             passportId: 'foobar',
             firstName: 'Bob',
             lastName: 'Kelso',
@@ -70,18 +90,19 @@ describe('bug-report.test.js', () => {
          */
         const dbInOtherTab = await createRxDatabase({
             name,
-            adapter: 'memory',
+            storage: getRxStoragePouch('memory'),
             eventReduce: true,
             ignoreDuplicate: true
         });
         // create a collection
-        const collectionInOtherTab = await dbInOtherTab.collection({
-            name: 'mycollection',
-            schema: mySchema
+        const collectionInOtherTab = await dbInOtherTab.addCollections({
+            mycollection: {
+                schema: mySchema
+            }
         });
 
         // find the document in the other tab
-        const myDocument = await collectionInOtherTab
+        const myDocument = await collectionInOtherTab.mycollection
             .findOne()
             .where('firstName')
             .eq('Bob')
@@ -95,11 +116,10 @@ describe('bug-report.test.js', () => {
 
         // you can also wait for events
         const emitted = [];
-        const sub = collectionInOtherTab
+        const sub = collectionInOtherTab.mycollection
             .findOne().$
             .subscribe(doc => emitted.push(doc));
         await AsyncTestUtil.waitUntil(() => emitted.length === 1);
-
 
         // clean up afterwards
         sub.unsubscribe();

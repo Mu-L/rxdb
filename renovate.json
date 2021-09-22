@@ -4,8 +4,6 @@
   ],
   "statusCheckVerify": true,
   "ignoreDeps": [
-    "node",
-    "webpack"
   ],
   "automerge": true,
   "major": {
@@ -20,5 +18,7 @@
     "examples/electron-remote/package.json"
   ],
   "rebaseStalePrs": true,
-  "prHourlyLimit": 2
+  "prHourlyLimit": 2,
+  "prCreation": "not-pending",
+  "dependencyDashboard": false
 }

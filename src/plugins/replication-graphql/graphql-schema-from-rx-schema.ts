@@ -1,4 +1,4 @@
-import { getGraphqlFromJsonSchema } from 'get-graphql-from-jsonschema';
+import { getGraphqlSchemaFromJsonSchema } from 'get-graphql-from-jsonschema';
 
 import { scalarTypes } from 'get-graphql-from-jsonschema/build/lib/scalarTypes';
 
@@ -20,7 +20,7 @@ export type Prefixes = {
 export type GraphQLParamType = 'ID' | 'ID!' | 'String' | 'String!' | 'Int' | 'Int!' | string;
 
 export type GraphQLSchemaFromRxSchemaInputSingleCollection = {
-    schema: RxJsonSchema;
+    schema: RxJsonSchema<any>;
     deletedFlag: string;
     // which keys must be send to the feed-query to get the newer documents?
     feedKeys: string[];
@@ -74,11 +74,13 @@ export function graphQLSchemaFromRxSchema(
 
         // input
         const inputSchema = stripKeysFromSchema(schema, collectionSettings.ignoreInputKeys as string[]);
-        const inputGraphQL = getGraphqlFromJsonSchema({
+
+        const inputGraphQL = getGraphqlSchemaFromJsonSchema({
             rootName: collectionNameInput,
             schema: inputSchema as any,
             direction: 'input'
         });
+
         ret.inputs = ret.inputs.concat(
             inputGraphQL
                 .typeDefinitions
@@ -87,7 +89,7 @@ export function graphQLSchemaFromRxSchema(
 
         // output
         const outputSchema = stripKeysFromSchema(schema, collectionSettings.ignoreOutputKeys as string[]);
-        const outputGraphQL = getGraphqlFromJsonSchema({
+        const outputGraphQL = getGraphqlSchemaFromJsonSchema({
             rootName: collectionName,
             schema: outputSchema as any,
             direction: 'output'
@@ -101,7 +103,7 @@ export function graphQLSchemaFromRxSchema(
         const queryName = prefixes.feed + ucCollectionName;
         const queryKeys = collectionSettings.feedKeys.map(key => {
             const subSchema: any = schema.properties[key];
-            const graphqlType = scalarTypes[subSchema.type];
+            const graphqlType = (scalarTypes as any)[subSchema.type];
             const keyString = key + ': ' + graphqlType + '';
             return keyString;
         });
@@ -204,7 +206,7 @@ export function fillUpOptionals(
     return input;
 }
 
-function stripKeysFromSchema(schema: RxJsonSchema, strip: string[]): RxJsonSchema {
+function stripKeysFromSchema<T>(schema: RxJsonSchema<T>, strip: string[]): RxJsonSchema<Partial<T>> {
     const cloned: any = clone(schema);
     strip.forEach(key => {
         delete cloned.properties[key];

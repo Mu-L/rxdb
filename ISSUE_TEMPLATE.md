@@ -28,6 +28,7 @@
 <!-- DESCRIBE WHY YOU OPEN THIS ISSUE -->
 
 ## Info
+  - RxDB Version: 
   - Environment: (Node.js/browser/electron/etc..)
   - Adapter: (IndexedDB/Localstorage/LevelDB/etc..)
   - Stack: (Typescript, Babel, Angular, React, etc..)
@@ -35,8 +36,8 @@
 ## Code
 
 ```js
-  const collection = await myDatabase.collection(/* ... */);
-  await collection.insert(/* ... */);
+  await myDatabase.addCollections(/* ... */);
+  await myDatabase.humans.insert(/* ... */);
   /* ... */
 ```
 

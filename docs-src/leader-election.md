@@ -22,7 +22,7 @@ To make it easy, here is an example where the temperature is pulled every ten se
 ```javascript
 const db = await createRxDatabase({
   name: 'weatherDB',
-  adapter: 'localstorage',
+  storage: getRxStoragePouch('idb'),
   password: 'myPassword',
   multiInstance: true
 });
@@ -62,4 +62,4 @@ The leader is elected between different processes on the same javascript-runtime
 
 --------------------------------------------------------------------------------
 
-If you are new to RxDB, you should continue [here](./replication.md)
+If you are new to RxDB, you should continue [here](./replication-couchdb.md)

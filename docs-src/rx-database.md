@@ -10,7 +10,7 @@ The database is created by the asynchronous .create()-function of the main RxDB-
 import { createRxDatabase } from 'rxdb';
 const db = await createRxDatabase({
   name: 'heroesdb',           // <- name
-  adapter: 'idb',          // <- storage-adapter
+  storage: getRxStoragePouch('idb'),          // <- storage-adapter
   password: 'myPassword',     // <- password (optional)
   multiInstance: true,         // <- multiInstance (optional, default: true)
   eventReduce: false // <- eventReduce (optional, default: true)
@@ -33,11 +33,11 @@ Example for browsers:
 ```javascript
 
 // this adapter stores the data in indexeddb
-addRxPlugin(require('pouchdb-adapter-idb'));
+addPouchPlugin(require('pouchdb-adapter-idb'));
 
 const db = await createRxDatabase({
   name: 'mydatabase',
-  adapter: 'idb' // name of the adapter
+  storage: getRxStoragePouch('idb')
 });
 ```
 
@@ -66,12 +66,12 @@ In some rare cases like unit-tests, you want to do this intentional by setting `
 ```js
 const db1 = await createRxDatabase({
   name: 'heroesdb',
-  adapter: 'websql',
+  storage: getRxStoragePouch('websql'),
   ignoreDuplicate: true
 });
 const db2 = await createRxDatabase({
   name: 'heroesdb',
-  adapter: 'websql',
+  storage: getRxStoragePouch('websql'),
   ignoreDuplicate: true // this create-call will not throw because you explicitly allow it
 });
 ```
@@ -88,25 +88,29 @@ Calling this will return an [rxjs-Observable](http://reactivex.io/documentation/
 myDb.$.subscribe(changeEvent => console.dir(changeEvent));
 ```
 
-### dump()
+### exportJSON()
 Use this function to create a json-export from every piece of data in every collection of this database. You can pass `true` as a parameter to decrypt the encrypted data-fields of your document.
 ```js
-myDatabase.dump()
+myDatabase.exportJSON()
   .then(json => console.dir(json));
 
 // decrypted dump
-myDatabase.dump(true)
+myDatabase.exportJSON(true)
   .then(json => console.dir(json));
 ```
 
-### importDump()
+### importJSON()
 To import the json-dumps into your database, use this function.
 
 ```js
 // import the dump to the database
-emptyDatabase.importDump(json)
+emptyDatabase.importJSON(json)
   .then(() => console.log('done'));
 ```
+
+### backup()
+
+Writes the current (or ongoing) database state to the filesystem. [Read more](./backup.md)
 
 ### server()
 Spawns a couchdb-compatible server from the database. [Read more](./custom-build.md#server)
@@ -157,8 +161,10 @@ removeRxDatabase('mydatabasename', 'localstorage');
 Checks if the given adapter can be used with RxDB in the current environment.
 
 ```js
-import { checkAdapter, addRxPlugin } from 'rxdb';
-addRxPlugin(require('pouchdb-adapter-localstorage')); // adapter must be added before
+// must be imported from the pouchdb plugin
+import { 
+    checkAdapter
+} from 'rxdb/plugins/pouchdb';
 
 const ok = await checkAdapter('localstorage');
 console.dir(ok); // true on most browsers, false on nodejs

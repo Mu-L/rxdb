@@ -48,7 +48,7 @@ At the server-side, there must exist an endpoint which returns newer rows when t
 
 For the push-replication, you also need a modifier which lets RxDB update data with a changed document as input.
 
-```
+```graphql
 input HumanInput {
     id: ID!,
     name: String!,
@@ -161,6 +161,7 @@ const replicationState = myCollection.syncGraphQL({
     pull: {
         queryBuilder: pullQueryBuilder, // the queryBuilder from above
         modifier: doc => doc // (optional) modifies all pulled documents before they are handeled by RxDB. Returning null will skip the document.
+        dataPath: undefined // (optional) specifies the object path to access the document(s). Otherwise, the first result of the response data is used.
     },
     deletedFlag: 'deleted', // the flag which indicates if a pulled document is deleted
     live: true // if this is true, rxdb will watch for ongoing changes and sync them, when false, a one-time-replication will be done
@@ -177,7 +178,8 @@ const pushQueryBuilder = doc => {
         mutation CreateHuman($human: HumanInput) {
             setHuman(human: $human) {
                 id,
-                updatedAt
+                updatedAt,
+                deleted
             }
         }
     `;
@@ -323,9 +325,9 @@ Cancels the replication. This is done autmatically if the `RxCollection` or it's
 await replicationState.cancel();
 ```
 
-#### .recieved$
+#### .received$
 
-An `Observable` that emits each document that is recieved from the endpoint.
+An `Observable` that emits each document that is received from the endpoint.
 
 #### .send$
 
